@@ -9,7 +9,7 @@ tic("total runtime")
 # data import -------------------------------------------------------------
 
 tic("data load")
-types <- readLines("types")
+types <- readLines("types.txt")
 setwd("fpkm/data-paired/")
 invisible(lapply(types, function(i) {
   assign(paste0(i, "_rna"), read.csv(paste0(i, "-rna.csv"), header = TRUE)[, -1], envir = globalenv())
@@ -58,7 +58,7 @@ invisible(lapply(1:length(types), function(i) {
   t <- proc.time()
   print(types[i])
   write.table(paste0(c("gene",mir),collapse="\t"),
-              file = paste0("fpkm/correlations/",types[i],"miR-gene-corr-spearman.txt"),
+              file = paste0("generated_files/correlations/",types[i],"miR-gene-corr-pearson.txt"),
               quote = F,
               append = FALSE,
               sep = "\t",
@@ -66,7 +66,7 @@ invisible(lapply(1:length(types), function(i) {
               row.names = F
   )
   write.table(paste0(c("gene",mir),collapse="\t"),
-              file = paste0("fpkm/correlations/",types[i],"miR-gene-pvalue-spearman.txt"),
+              file = paste0("generated_files/correlations/",types[i],"miR-gene-pvalue-pearson.txt"),
               quote = F,
               append = FALSE,
               sep = "\t",
@@ -86,11 +86,11 @@ invisible(lapply(1:length(types), function(i) {
   #starting correlation loop  
   sapply(1:(as.integer(length(rna)/1000)+1), function(j) {
       
-      COR <- rcorr(t(y[(j*1000-999):(j*1000), -1]), t(x[, -1]), type = "spearman")
+      COR <- rcorr(t(y[(j*1000-999):(j*1000), -1]), t(x[, -1]), type = "pearson")
       rownames(COR$r)[1:1000]<-rna[(j*1000-999):(j*1000)]
       rownames(COR$P)[1:1000]<-rna[(j*1000-999):(j*1000)]
       write.table(COR$r[1:1000,1001:nrow(COR$r)],
-                  file = paste0("fpkm/correlations/",types[i],"miR-gene-corr-spearman.txt"),
+                  file = paste0("generated_files//correlations/",types[i],"miR-gene-corr-pearson.txt"),
                   quote = F,
                   append = TRUE,
                   sep = "\t",
@@ -98,7 +98,7 @@ invisible(lapply(1:length(types), function(i) {
                   row.names = TRUE
       )
       write.table(COR$P[1:1000,1001:nrow(COR$P)],
-                  file = paste0("fpkm/correlations/",types[i],"miR-gene-pvalue-spearman.txt"),
+                  file = paste0("generated_files/correlations/",types[i],"miR-gene-pvalue-pearson.txt"),
                   quote = F,
                   append = TRUE,
                   sep = "\t",
@@ -115,10 +115,10 @@ toc()
 rm(list=ls())
 library(reshape2)
 tic("melt")
-types <- readLines("types")
+types <- readLines("types.txt")
 invisible(lapply(types, function(i) {
-  assign(paste0(i, "_corr"), read.table(paste0("fpkm/correlations/",i,"miR-gene-corr-spearman.txt"),sep = "\t", header = TRUE), envir = globalenv())
-  assign(paste0(i, "_pvalue"), read.csv(paste0("fpkm/correlations/",i,"miR-gene-pvalue-spearman.txt"),sep = "\t", header = TRUE), envir = globalenv())
+  assign(paste0(i, "_corr"), read.table(paste0("generated_files/correlations/",i,"miR-gene-corr-pearson.txt"),sep = "\t", header = TRUE), envir = globalenv())
+  assign(paste0(i, "_pvalue"), read.csv(paste0("generated_files/correlations/",i,"miR-gene-pvalue-pearson.txt"),sep = "\t", header = TRUE), envir = globalenv())
 }))
 if(Reduce(all,lapply(types,function(i){
   identical(get(paste0(i,"_corr"))[,1],get(paste0(i,"_pvalue"))[,1])
@@ -129,7 +129,7 @@ if(Reduce(all,lapply(types,function(i){
   temp<-Reduce(rbind,temp)
   colnames(temp)<-c("gene","microRNA","correlation","pvalue","cancer")
   temp<-temp[which(as.numeric(temp$pvalue)< 0.001),]
-  write.table(temp,"generated_files/correlations-spearman.tsv",row.names = F, col.names = T, quote = F, sep="\t" )
+  write.table(temp,"generated_files/correlations-pearson.tsv",row.names = F, col.names = T, quote = F, sep="\t" )
   
 }
 print("melt done")

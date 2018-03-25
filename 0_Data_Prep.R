@@ -5,8 +5,8 @@ library("jsonlite") #fromJSON() required to load json files
 sink("logs/0_Data_Prep.txt",split=TRUE) #printing output to file and console
 print(Sys.time()) #printing runtime
 rm(list=ls()) #clearing workspace
-tic("total") #run time is approx 3900s
-types<-readLines("types")
+tic("total") #run time is approx 1000s per cancer type
+types<-readLines("types.txt")
 
 barcode_filter<-20 # splicing TCGA barcode before plate/aliquot
 

@@ -1,49 +1,49 @@
 
-# library import ----------------------------------------------------------
-library("tictoc")
-library("jsonlite")
-sink("data-paired/logs.txt",append = TRUE)
-print(Sys.time())
+# importing libraries ----------------------------------------------------------
+library("tictoc") #timing functions tic() and toc()
+library("jsonlite") #fromJSON() required to load json files
+sink("logs/0_Data_Prep.txt",split=TRUE) #printing output to file and console
+print(Sys.time()) #printing runtime
 rm(list=ls()) #clearing workspace
 tic("total") #run time is approx 3900s
-types<-c("COAD","HNSC","OV","UCEC","CESC")
+types<-readLines("types")
 
-barcode_filter<-20
+barcode_filter<-20 # splicing TCGA barcode before plate/aliquot
+
 #looping over cancer data types
-
 lapply(types,function(type){
-  tic(i)
+  tic(type)
   print(paste0("cancer type: ",type))
 
 # metadata import ---------------------------------------------------------
 
-  metadata<-fromJSON(paste0("data/",type,"-metadata.json"))
+  metadata<-fromJSON(paste0("fpkm/data/",type,"_metadata.json"))
   print("metadata contents")
-  print(colnames(metadata))#use associated_entities
+  print(colnames(metadata))#use associated_entities for barcode
   x<- as.character(sapply(metadata$associated_entities,function(i){
-    i[3]
+    i[3] #barcode is element 3 of associated_entities
   }))
-  x<-substring(x,1,barcode_filter)
-  meta<-cbind(metadata[,c(2,3,5)],x)
-  y<-which(meta$data_format=="TXT")
-  meta[y,2]<-substring(meta[y,2],1,45)#Should not need changing
-  x<-c(x[y],x[-y])
-  meta<-rbind(meta[y,],meta[-y,])
+  x<-substring(x,1,barcode_filter) #splicing barcode 
+  meta<-cbind(metadata[,c(2,3,5)],x) #filtering metadata columns to 
+  y<-which(meta$data_format=="TXT") # only miRNA quantification files end with .txt in metadata
+  meta[y,2]<-substring(meta[y,2],1,45)#filename splice to get rid of .gz compression extension
+  x<-c(x[y],x[-y]) #ordering barcode
+  meta<-rbind(meta[y,],meta[-y,])	#ordering metadata and adding spliced barcode
   
   
   print(" filename splicing check")
   print(sum(sapply(meta$data_format,function(i){substring(i,nchar(i)-3)=="TXT"}))==length(y))
   print(" sort and contents check")
-  pint(identical(1:length(y),which(meta$data_format=="TXT")))
+  print(identical(1:length(y),which(meta$data_format=="TXT")))
   flush.console()
 
 # unpaired data import ----------------------------------------------------
   
   rna<-lapply(meta[1:length(y),2], function(i){
-    read.table(file=paste("data/",type,"/rna/",i,sep = "",collapse = ""),sep="\t")
+    read.table(file=paste("fpkm/data/",type,"/rna/",i,sep = "",collapse = ""),sep="\t")
   })
   mir<-lapply(meta[(length(y)+1):length(x),2],function(i){
-    read.table(file=paste("data/",type,"/mir/",i,sep = "",collapse = ""),sep="\t",header = TRUE)
+    read.table(file=paste("fpkm/data/",type,"/mir/",i,sep = "",collapse = ""),sep="\t",header = TRUE)
   })
   
   z<-Reduce(cbind,rna)
@@ -99,12 +99,11 @@ lapply(types,function(type){
 
 # file write --------------------------------------------------------------
 
-  write.csv(rna,file = paste0("data-paired/",type,"-rna.csv"))
-  write.csv(mir,file = paste0("data-paired/",type,"-mir.csv"))
+  write.csv(rna,file = paste0("fpkm/data-paired/",type,"-rna.csv"))
+  write.csv(mir,file = paste0("fpkm/data-paired/",type,"-mir.csv"))
   
-  toc()
-  flush.console()
-})
+  print(toc())
+  })
 toc()
 print(Sys.time())
 rm(list=ls())
